@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>slack-like</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css?family=Nunito:200,600"
+      rel="stylesheet"
+    />
+
+    <!-- Styles -->
+    <style>
+      html,
+      body {
+        background-color: #fff;
+        color: #636b6f;
+        font-family: "Nunito", sans-serif;
+        font-weight: 200;
+        height: 100vh;
+        margin: 0;
+      }
+      .base {
+        display: flex;
+      }
+      .title,
+      #space-name,
+      #channel-name,
+      #thread-name {
+        color: white;
+      }
+      #thread-name {
+        position: absolute;
+        transform: translate(0, -20%);
+      }
+      .header {
+        height: 80px;
+        background-color: #9f8a79;
+      }
+      .thread-header {
+        display: flex;
+        height: 30px;
+        padding: 5px;
+      }
+      .main-area {
+        height: calc(100vh - 80px);
+        background-color: #eadbda;
+        display: flex;
+      }
+      .tab-header {
+        height: 30px;
+        border-top: #636b6f solid 1px;
+      }
+
+      .channel-tab {
+        width: 25%;
+        min-width: 100px;
+        max-width: 500px;
+        background-color: #57777d;
+        padding: 10px;
+        overflow-y: scroll;
+        -ms-overflow-style: none; /* IE, Edge 対応 */
+        scrollbar-width: none; /* Firefox 対応 */
+        color: rgb(187, 187, 187);
+      }
+      .channel-tab::-webkit-scrollbar {
+        display: none;
+      }
+
+      .thread-tab {
+        width: 80%;
+        background-color: #eae0cb;
+        overflow-y: scroll;
+      }
+      .tab-header-channel {
+        width: 25%;
+        padding-left: 5px;
+      }
+      .tab-header-message {
+        width: 80%;
+        padding-left: 5px;
+      }
+      .tab-header-thread {
+        width: 40%;
+        padding-left: 5px;
+        position: relative;
+      }
+
+      .tab-content {
+        margin: 50px 0px;
+      }
+
+      .reply-tab {
+        width: 40%;
+        height: 100%;
+      }
+
+      .channel-selected {
+        color: white;
+        font-weight: bold;
+      }
+
+      /* １メッセージ */
+      .message-area {
+        display: flex;
+        padding: 10px;
+      }
+
+      .message-area:hover {
+        background-color: rgb(196, 196, 196);
+      }
+      .information-area {
+        margin-left: 5px;
+      }
+      .time {
+        margin-left: 20px;
+      }
+
+      .user-icon {
+        width: 70px;
+        height: 70px;
+        background-color: white;
+        border-radius: 10px;
+      }
+
+      .name-and-time-header {
+        display: flex;
+      }
+
+      .reaction-stamps {
+        display: flex;
+        margin-top: 4px;
+      }
+
+      .stamp {
+        background-color: lightskyblue;
+        border-radius: 50px;
+        padding: 5px;
+      }
+
+      .add-stamp {
+        background-color: lightslategray;
+        border-radius: 100%;
+        padding: 5px;
+      }
+
+      .reply-count-text {
+        margin: 0 5px;
+        line-height: 30px;
+      }
+      .reply-date-text {
+        margin: 0 5px;
+        line-height: 30px;
+      }
+
+      .reply-thread {
+        display: flex;
+        height: 30px;
+        text-align: center;
+        padding: 2px;
+        margin: 5px 0;
+      }
+      .reply-thread:hover {
+        background-color: aliceblue;
+      }
+
+      .reply-user-icon {
+        width: 30px;
+        height: 30px;
+      }
+
+      .reply-message-tab {
+        height: 100%;
+        overflow-y: scroll;
+        background-color: #eae0cb;
+      }
+      #close-thread-button {
+        font-size: 24px;
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        outline: none;
+        appearance: none;
+        margin-left: 10px;
+        color: white;
+        width: 30px;
+        height: 30px;
+        padding: 0 5px;
+      }
+      #close-thread-button:hover {
+        background-color: rgb(196, 196, 196);
+      }
+      .general-mention {
+        background-color: yellow;
+        margin: 0 3px;
+        padding: 0 2px;
+        font-weight: bold;
+      }
+      .personal-mention {
+        background-color: rgb(175, 219, 219);
+        color: rgb(33, 120, 190);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="title m-b-md">
+        slack like
+      </div>
+      <hr />
+      <div class="thread-header">
+        <div class="tab-header-channel">
+          <span id="space-name">space-name</span>
+        </div>
+        <div class="tab-header-message">
+          <span id="channel-name">channel</span>
+        </div>
+        <div class="tab-header-thread" hidden>
+          <span id="thread-name"
+            >スレッド<span
+              id="close-thread-button"
+              onclick="onClickCloseThread()"
+              >x</span
+            >
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="main-area">
+      <div class="channel-tab">
+        <p>スレッド</p>
+        <p>メンション＆リアクション</p>
+        <p>その他</p>
+        <div class="tab-content" id="channel-tab-content">
+          <p>チャンネル</p>
+          <!-- <p
+            id="sample"
+            class="channel-selected"
+            onclick="onClickChannel(this)"
+          >
+            # sample-channel
+          </p> -->
+        </div>
+        <div class="tab-content">
+          <p>ダイレクトメッセージ</p>
+          <p>未実装</p>
+        </div>
+        <div class="tab-content">
+          <p>App</p>
+        </div>
+      </div>
+      <!-- <div class="tab-header">
+        <p>チャンネル名</p>
+      </div> -->
+      <div class="thread-tab" id="thread-tab">
+        <!-- <div id="thread-tab"> -->
+        <!-- <div>
+            <p>2020年00月00日</p>
+          </div>
+          <div class="message-area">
+            <img src="./images/human.svg" class="user-icon" />
+            <div class="information-area">
+              <div class="name-and-time-header">
+                <div class="user-name">なまえ</div>
+                <div class="time">00:00</div>
+              </div>
+              <div class="message-text">てきすとてきすとてきすと</div>
+              <div class="reaction-stamps">
+                <div class="stamp">(**)</div>
+                <div class="add-stamp">+</div>
+              </div>
+              <div class="reply-thread">
+                <img src="./images/human.svg" class="reply-user-icon" />
+                <p class="reply-count-text">0件の返信</p>
+                <p class="reply-date-text">0日前</p>
+              </div>
+            </div>
+          </div> -->
+        <!-- </div> -->
+      </div>
+      <div class="reply-tab" hidden>
+        <div class="reply-message-tab">
+          <div id="reply-tab">
+            <!-- <div class="message-area">
+              <img src="./images/human.svg" class="user-icon" />
+              <div class="information-area">
+                <div class="name-and-time-header">
+                  <div class="user-name">なまえ</div>
+                  <div class="time">00:00</div>
+                </div>
+                <div class="message-text">てきすとてきすとてきすと</div>
+                <div class="reaction-stamps">
+                  <div class="stamp">(**)</div>
+                  <div class="add-stamp">+</div>
+                </div>
+              </div>
+            </div>
+            <div>0件の返信</div>
+            <div class="message-area">
+              <img src="./images/human.svg" class="user-icon" />
+              <div class="information-area">
+                <div class="name-and-time-header">
+                  <div class="user-name">なまえ</div>
+                  <div class="time">00:00</div>
+                </div>
+                <div class="message-text">てきすとてきすとてきすと</div>
+                <div class="reaction-stamps">
+                  <div class="stamp">(**)</div>
+                  <div class="add-stamp">+</div>
+                </div>
+              </div>
+            </div> -->
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript" src="./js/home.js"></script>
+    <script>
+      function post(url, body, successCallback, failedCallback) {
+        $.ajax({
+          url: "<?php echo $host ?>" + url,
+          type: "POST",
+          data: body
+        })
+          .done(data => {
+            successCallback(data);
+          })
+          .fail(data => {
+            failedCallback(data);
+          });
+      }
+    </script>
+  </body>
+</html>
